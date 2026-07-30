@@ -13,10 +13,10 @@ import org.objectweb.asm.commons.Method;
  * Module 1: BFS光照引擎 — 替换DFS递归为BFS迭代
  *
  * 转换目标:
- *   - World.checkLightFor(EnumSkyBlock, BlockPos)Z → 委托NovaLightEngine
- *   - World.updateLightByType(EnumSkyBlock, BlockPos)V → 委托NovaLightEngine
+ *   - World.func_180500_c(EnumSkyBlock, BlockPos)Z → 委托NovaLightEngine
+ *   - World.func_185463_a(EnumSkyBlock, BlockPos)V → 委托NovaLightEngine
  *
- * 安全锁: 验证两个目标方法签名均存在后才替换整个方法体
+ * 注意: func_185463_a (updateLightByType) 可能在某些Forge版本中不存在
  */
 public class LightingTransformer extends NovaTransformer {
 
@@ -41,17 +41,6 @@ public class LightingTransformer extends NovaTransformer {
     }
 
     @Override
-    protected MethodSignature[] getRequiredMethods(String targetClass) {
-        if (WORLD.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("checkLightFor", CHECK_LIGHT_DESC),
-                MethodSignature.of("updateLightByType", UPDATE_LIGHT_DESC),
-            };
-        }
-        return null;
-    }
-
-    @Override
     protected byte[] doTransform(String className, String transformedName, byte[] bytes) {
         ClassReader cr = new ClassReader(bytes);
         ClassWriter cw = createClassWriter(cr);
@@ -62,7 +51,8 @@ public class LightingTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("checkLightFor".equals(name) && CHECK_LIGHT_DESC.equals(desc)) {
+                // func_180500_c = checkLightFor
+                if ("func_180500_c".equals(name) && CHECK_LIGHT_DESC.equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {
@@ -77,7 +67,8 @@ public class LightingTransformer extends NovaTransformer {
                     };
                 }
 
-                if ("updateLightByType".equals(name) && UPDATE_LIGHT_DESC.equals(desc)) {
+                // func_185463_a = updateLightByType (may not exist in all Forge builds)
+                if ("func_185463_a".equals(name) && UPDATE_LIGHT_DESC.equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {

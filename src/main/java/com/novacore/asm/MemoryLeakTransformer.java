@@ -8,10 +8,8 @@ import org.objectweb.asm.Opcodes;
 
 /**
  * Module 3: 内存泄漏修复
- * 1. World卸载泄漏 — 在onWorldSave末尾注入清理调用
- * 2. FakePlayer泄漏 — 在onUpdate开头注入过期检测
- *
- * 安全锁: 分别验证WorldServer.onWorldSave()V和FakePlayer.onUpdate()V存在后才注入
+ * 1. World卸载泄漏 — 在WorldServer.func_73044_a末尾注入清理调用
+ * 2. FakePlayer泄漏 — 在FakePlayer.func_70071_h_开头注入过期检测
  */
 public class MemoryLeakTransformer extends NovaTransformer {
 
@@ -27,21 +25,6 @@ public class MemoryLeakTransformer extends NovaTransformer {
     @Override
     protected String getTransformerName() {
         return "MemLeak";
-    }
-
-    @Override
-    protected MethodSignature[] getRequiredMethods(String targetClass) {
-        if (WORLD_SERVER.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("onWorldSave", "()V"),
-            };
-        }
-        if (FAKE_PLAYER.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("onUpdate", "()V"),
-            };
-        }
-        return null;
     }
 
     @Override
@@ -65,7 +48,8 @@ public class MemoryLeakTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("onWorldSave".equals(name) && "()V".equals(desc)) {
+                // func_73044_a = saveAllChunks(boolean, IProgressUpdate) → save method
+                if ("func_73044_a".equals(name) && "(ZLnet/minecraft/util/IProgressUpdate;)V".equals(desc)) {
                     return new ReturnInjector(mv) {
                         @Override
                         protected void onBeforeReturn() {
@@ -91,7 +75,8 @@ public class MemoryLeakTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("onUpdate".equals(name) && "()V".equals(desc)) {
+                // func_70071_h_ = onUpdate()V (Entity.onUpdate)
+                if ("func_70071_h_".equals(name) && "()V".equals(desc)) {
                     return new HeadInjector(mv) {
                         @Override
                         protected void onMethodEntry() {

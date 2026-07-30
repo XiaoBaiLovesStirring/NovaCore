@@ -14,11 +14,9 @@ import org.objectweb.asm.commons.Method;
  * Module 2: 异步区块加载 — 替换同步IO为异步预加载+并行解析
  *
  * 转换目标:
- *   - AnvilChunkLoader.loadChunk(World,int,int)Chunk → 委托NovaChunkIO
- *   - AnvilChunkLoader.chunkExists(World,int,int)Z → 委托NovaChunkIO
- *   - PlayerChunkMapEntry.update()V → 注入异步预加载调度
- *
- * 安全锁: 分别验证每个目标类的所有目标方法存在后才进行转换
+ *   - AnvilChunkLoader.func_75815_a(World, int, int)Chunk → 委托NovaChunkIO
+ *   - AnvilChunkLoader.func_191063_a(int, int)Z → 委托NovaChunkIO
+ *   - PlayerChunkMapEntry.func_187280_d()V → 注入异步预加载调度
  */
 public class ChunkLoadingTransformer extends NovaTransformer {
 
@@ -37,22 +35,6 @@ public class ChunkLoadingTransformer extends NovaTransformer {
     @Override
     protected String getTransformerName() {
         return "ChunkLoad";
-    }
-
-    @Override
-    protected MethodSignature[] getRequiredMethods(String targetClass) {
-        if (ANVIL_CHUNK_LOADER.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("loadChunk", "(" + WORLD_TYPE + "II)" + CHUNK_TYPE),
-                MethodSignature.of("chunkExists", "(" + WORLD_TYPE + "II)Z"),
-            };
-        }
-        if (PLAYER_CHUNK_MAP_ENTRY.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("update", "()V"),
-            };
-        }
-        return null;
     }
 
     @Override
@@ -90,7 +72,8 @@ public class ChunkLoadingTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("loadChunk".equals(name) &&
+                // func_75815_a = loadChunk(World, int, int)Chunk
+                if ("func_75815_a".equals(name) &&
                         ("(" + WORLD_TYPE + "II)" + CHUNK_TYPE).equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
@@ -108,19 +91,17 @@ public class ChunkLoadingTransformer extends NovaTransformer {
                     };
                 }
 
-                if ("chunkExists".equals(name) &&
-                        ("(" + WORLD_TYPE + "II)Z").equals(desc)) {
+                // func_191063_a = isChunkGeneratedAt(int, int)Z
+                if ("func_191063_a".equals(name) && "(II)Z".equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {
                             ga.loadThis();
                             ga.loadArg(0);
                             ga.loadArg(1);
-                            ga.loadArg(2);
                             ga.invokeStatic(Type.getType("L" + NOVA_CHUNK_IO + ";"),
                                 new Method("chunkExistsFast",
-                                    "(Lnet/minecraft/world/chunk/storage/AnvilChunkLoader;" +
-                                    WORLD_TYPE + "II)Z"));
+                                    "(Lnet/minecraft/world/chunk/storage/AnvilChunkLoader;II)Z"));
                             ga.returnValue();
                         }
                     };
@@ -141,7 +122,8 @@ public class ChunkLoadingTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("update".equals(name) && "()V".equals(desc)) {
+                // func_187280_d = update()V
+                if ("func_187280_d".equals(name) && "()V".equals(desc)) {
                     return new HeadInjector(mv) {
                         @Override
                         protected void onMethodEntry() {

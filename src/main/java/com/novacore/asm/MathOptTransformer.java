@@ -11,10 +11,8 @@ import org.objectweb.asm.commons.Method;
 
 /**
  * Module 5: 数学优化 — sin/cos查表法
- * 替换MathHelper.sin和MathHelper.cos为65536精度查表实现。
+ * 替换MathHelper.func_76126_a和MathHelper.func_76134_b为65536精度查表实现。
  * 消除每帧数千次Math.sin/cos的JNI调用开销（约10x加速）。
- *
- * 安全锁: 验证sin(F)F和cos(F)F两个方法均存在后才替换
  */
 public class MathOptTransformer extends NovaTransformer {
 
@@ -32,17 +30,6 @@ public class MathOptTransformer extends NovaTransformer {
     }
 
     @Override
-    protected MethodSignature[] getRequiredMethods(String targetClass) {
-        if (MATH_HELPER.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("sin", "(F)F"),
-                MethodSignature.of("cos", "(F)F"),
-            };
-        }
-        return null;
-    }
-
-    @Override
     protected byte[] doTransform(String className, String transformedName, byte[] bytes) {
         ClassReader cr = new ClassReader(bytes);
         ClassWriter cw = createClassWriter(cr);
@@ -53,7 +40,8 @@ public class MathOptTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("sin".equals(name) && "(F)F".equals(desc)) {
+                // func_76126_a = sin
+                if ("func_76126_a".equals(name) && "(F)F".equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {
@@ -65,7 +53,8 @@ public class MathOptTransformer extends NovaTransformer {
                     };
                 }
 
-                if ("cos".equals(name) && "(F)F".equals(desc)) {
+                // func_76134_b = cos
+                if ("func_76134_b".equals(name) && "(F)F".equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {

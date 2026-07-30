@@ -11,10 +11,8 @@ import org.objectweb.asm.Opcodes;
  * Module 4: 实体遮挡剔除 — 基于视锥体的实体渲染剔除
  *
  * 转换目标（仅客户端）:
- *   - RenderGlobal.renderEntities(Entity, ICamera, float)V
+ *   - RenderGlobal.func_180446_a(Entity, ICamera, float)V
  *     → 注入剔除设置与结束调用
- *
- * 安全锁: 验证renderEntities(Entity,ICamera,F)V存在后才注入
  */
 public class EntityCullingTransformer extends NovaTransformer {
 
@@ -34,16 +32,6 @@ public class EntityCullingTransformer extends NovaTransformer {
     @Override
     protected String getTransformerName() {
         return "EntityCull";
-    }
-
-    @Override
-    protected MethodSignature[] getRequiredMethods(String targetClass) {
-        if (RENDER_GLOBAL.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("renderEntities", RENDER_ENTITIES_DESC),
-            };
-        }
-        return null;
     }
 
     @Override
@@ -71,7 +59,8 @@ public class EntityCullingTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("renderEntities".equals(name) && RENDER_ENTITIES_DESC.equals(desc)) {
+                // func_180446_a = renderEntities(Entity, ICamera, float)V
+                if ("func_180446_a".equals(name) && RENDER_ENTITIES_DESC.equals(desc)) {
                     return new CullingInjector(mv);
                 }
 

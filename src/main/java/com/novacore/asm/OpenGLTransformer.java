@@ -14,11 +14,9 @@ import org.objectweb.asm.commons.Method;
  * Module 6: OpenGL管线优化 — MultiDraw批量渲染 + GL状态缓存
  *
  * 转换目标（仅客户端）:
- *   - RenderGlobal.renderBlockLayer(BlockRenderLayer, double, int, Entity)V → 委托
- *   - RenderGlobal.setupTerrain(Entity, double, boolean)V → 注入GL状态缓存初始化
- *   - RenderGlobal.renderClouds(float, int, double, double)V → 注入GL状态缓存重置
- *
- * 安全锁: 验证三个目标方法签名均存在后才进行转换
+ *   - RenderGlobal.func_174977_a(BlockRenderLayer, double, int, Entity)I → 委托
+ *   - RenderGlobal.func_174970_a(Entity, double, ICamera, int, boolean)V → 注入GL状态缓存初始化
+ *   - RenderGlobal.func_180447_b(float, int, double, double, double)V → 注入GL状态缓存重置
  */
 public class OpenGLTransformer extends NovaTransformer {
 
@@ -27,10 +25,11 @@ public class OpenGLTransformer extends NovaTransformer {
 
     private static final String BLOCK_RENDER_LAYER = "Lnet/minecraft/util/BlockRenderLayer;";
     private static final String ENTITY_TYPE = "Lnet/minecraft/entity/Entity;";
+    private static final String ICAMERA_TYPE = "Lnet/minecraft/client/renderer/culling/ICamera;";
 
-    private static final String RENDER_BLOCK_LAYER_DESC = "(" + BLOCK_RENDER_LAYER + "DI" + ENTITY_TYPE + ")V";
-    private static final String SETUP_TERRAIN_DESC = "(" + ENTITY_TYPE + "DZ)V";
-    private static final String RENDER_CLOUDS_DESC = "(FIDD)V";
+    private static final String RENDER_BLOCK_LAYER_DESC = "(" + BLOCK_RENDER_LAYER + "DI" + ENTITY_TYPE + ")I";
+    private static final String SETUP_TERRAIN_DESC = "(" + ENTITY_TYPE + "D" + ICAMERA_TYPE + "IZ)V";
+    private static final String RENDER_CLOUDS_DESC = "(FIDDD)V";
 
     @Override
     protected String[] getTargetClasses() {
@@ -40,18 +39,6 @@ public class OpenGLTransformer extends NovaTransformer {
     @Override
     protected String getTransformerName() {
         return "OpenGL";
-    }
-
-    @Override
-    protected MethodSignature[] getRequiredMethods(String targetClass) {
-        if (RENDER_GLOBAL.equals(targetClass)) {
-            return new MethodSignature[]{
-                MethodSignature.of("renderBlockLayer", RENDER_BLOCK_LAYER_DESC),
-                MethodSignature.of("setupTerrain", SETUP_TERRAIN_DESC),
-                MethodSignature.of("renderClouds", RENDER_CLOUDS_DESC),
-            };
-        }
-        return null;
     }
 
     @Override
@@ -89,7 +76,8 @@ public class OpenGLTransformer extends NovaTransformer {
                     String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
-                if ("renderBlockLayer".equals(name) && RENDER_BLOCK_LAYER_DESC.equals(desc)) {
+                // func_174977_a = renderBlockLayer(BlockRenderLayer, double, int, Entity) → int
+                if ("func_174977_a".equals(name) && RENDER_BLOCK_LAYER_DESC.equals(desc)) {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {
@@ -101,13 +89,14 @@ public class OpenGLTransformer extends NovaTransformer {
                             ga.invokeStatic(Type.getType("L" + NOVA_GL + ";"),
                                 new Method("renderBlockLayerMultiDraw",
                                     "(Lnet/minecraft/client/renderer/RenderGlobal;" +
-                                    BLOCK_RENDER_LAYER + "DI" + ENTITY_TYPE + ")V"));
+                                    BLOCK_RENDER_LAYER + "DI" + ENTITY_TYPE + ")I"));
                             ga.returnValue();
                         }
                     };
                 }
 
-                if ("setupTerrain".equals(name) && SETUP_TERRAIN_DESC.equals(desc)) {
+                // func_174970_a = setupTerrain(Entity, double, ICamera, int, boolean)V
+                if ("func_174970_a".equals(name) && SETUP_TERRAIN_DESC.equals(desc)) {
                     return new HeadInjector(mv) {
                         @Override
                         protected void onMethodEntry() {
@@ -119,7 +108,8 @@ public class OpenGLTransformer extends NovaTransformer {
                     };
                 }
 
-                if ("renderClouds".equals(name) && RENDER_CLOUDS_DESC.equals(desc)) {
+                // func_180447_b = renderClouds(float, int, double, double, double)V
+                if ("func_180447_b".equals(name) && RENDER_CLOUDS_DESC.equals(desc)) {
                     return new ReturnInjector(mv) {
                         @Override
                         protected void onBeforeReturn() {
