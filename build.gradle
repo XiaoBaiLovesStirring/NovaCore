@@ -11,34 +11,40 @@ compileJava.options.encoding = 'UTF-8'
 
 repositories {
     mavenCentral()
+    maven { url = 'https://libraries.minecraft.net' }
 }
 
-// ===== Forge 1.12.2 universal jar (SRG=class names match MCP, compile only) =====
+// ===== Forge 1.12.2 universal jar (SRG class names = MCP, compile only) =====
 configurations {
     forge
     compileOnly.extendsFrom forge
 }
 
-def userdevVersion = '1.12.2-14.23.5.2864'
-def userdevDir = file("$buildDir/forge_universal")
-def userdevJar = file("$userdevDir/forge-${userdevVersion}-universal.jar")
+def forgeVersion = '1.12.2-14.23.5.2864'
+def forgeDir = file("$buildDir/forge_universal")
+def forgeJar = file("$forgeDir/forge-${forgeVersion}-universal.jar")
 
 dependencies {
-    forge files(userdevJar)
+    forge files(forgeJar)
+    // ASM 字节码库 (coremod 核心依赖，运行时由 Forge 提供)
+    compileOnly 'org.ow2.asm:asm:5.2'
+    compileOnly 'org.ow2.asm:asm-commons:5.2'
+    // LaunchWrapper (coremod 加载框架)
+    compileOnly 'net.minecraft:launchwrapper:1.12'
 }
 
 task downloadForgeUniversal {
     doLast {
-        userdevDir.mkdirs()
-        if (!userdevJar.exists() || userdevJar.length() < 1000000) {
-            def url = "https://maven.minecraftforge.net/net/minecraftforge/forge/${userdevVersion}/forge-${userdevVersion}-universal.jar"
+        forgeDir.mkdirs()
+        if (!forgeJar.exists() || forgeJar.length() < 1000000) {
+            def url = "https://maven.minecraftforge.net/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-universal.jar"
             println "[NovaCore] Downloading Forge universal from: $url"
             exec {
-                commandLine 'curl', '-L', '-o', userdevJar.absolutePath, url
+                commandLine 'curl', '-L', '-o', forgeJar.absolutePath, url
             }
-            println "[NovaCore] Downloaded: ${userdevJar.length()} bytes"
+            println "[NovaCore] Downloaded: ${forgeJar.length()} bytes"
         } else {
-            println "[NovaCore] Using cached Forge universal: ${userdevJar.length()} bytes"
+            println "[NovaCore] Using cached Forge universal: ${forgeJar.length()} bytes"
         }
     }
 }
