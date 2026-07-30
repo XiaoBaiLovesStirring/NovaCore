@@ -1,16 +1,6 @@
-buildscript {
-    repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        mavenCentral()
-        maven { url = 'https://repo.spongepowered.org/maven' }
-        maven { url = 'https://libraries.minecraft.net' }
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-    }
+plugins {
+    id 'java'
 }
-
-apply plugin: 'net.minecraftforge.gradle.forge'
 
 version = '1.0.0-alpha'
 group = 'com.novacore'
@@ -19,11 +9,43 @@ archivesBaseName = 'NovaCore'
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava.options.encoding = 'UTF-8'
 
-minecraft {
-    version = '1.12.2-14.23.5.2864'
-    runDir = 'run'
-    mappings = 'stable_39'
+repositories {
+    mavenCentral()
 }
+
+// ===== Forge 1.12.2 userdev (deobfuscated Minecraft + Forge, compile only) =====
+configurations {
+    forge
+    compileOnly.extendsFrom forge
+}
+
+def userdevVersion = '1.12.2-14.23.5.2864'
+def userdevDir = file("$buildDir/forge_userdev")
+def userdevJar = file("$userdevDir/forge-${userdevVersion}-userdev.jar")
+
+dependencies {
+    forge files(userdevJar)
+}
+
+task downloadForgeUserdev {
+    doLast {
+        userdevDir.mkdirs()
+        if (!userdevJar.exists()) {
+            def url = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/${userdevVersion}/forge-${userdevVersion}-userdev.jar"
+            println "[NovaCore] Downloading Forge userdev from: $url"
+            new URL(url).withInputStream { input ->
+                userdevJar.withOutputStream { output ->
+                    output << input
+                }
+            }
+            println "[NovaCore] Downloaded: ${userdevJar.length()} bytes"
+        } else {
+            println "[NovaCore] Using cached Forge userdev: ${userdevJar.length()} bytes"
+        }
+    }
+}
+
+compileJava.dependsOn downloadForgeUserdev
 
 jar {
     manifest {
@@ -36,7 +58,6 @@ jar {
 }
 
 processResources {
-    inputs.property 'version', project.version
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
         expand 'version': project.version

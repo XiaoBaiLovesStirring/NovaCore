@@ -17,17 +17,18 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
-      - name: Cache Gradle packages
+      - name: Cache Gradle & Forge userdev
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+            build/forge_userdev
+          key: ${{ runner.os }}-gradle-novacore-${{ hashFiles('build.gradle') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-gradle-novacore-
 
-      - name: Download Gradle Wrapper
+      - name: Setup Gradle Wrapper
         run: |
           mkdir -p gradle/wrapper
           cd gradle/wrapper
@@ -35,7 +36,6 @@ jobs:
           cd ../..
           cat > gradlew << 'GRADLEW'
           #!/bin/sh
-          # Gradle wrapper script
           SAVED="$(pwd)"
           cd "$(dirname "$0")"
           APP_HOME="$(pwd -P)"
@@ -45,7 +45,7 @@ jobs:
           GRADLEW
           chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: Build
         run: ./gradlew build --no-daemon --stacktrace
 
       - name: Upload NovaCore JAR
