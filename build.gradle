@@ -14,15 +14,15 @@ repositories {
     maven { url = 'https://libraries.minecraft.net' }
 }
 
-// ===== Forge 1.12.2 universal jar (SRG class names = MCP, compile only) =====
+// ===== Forge 1.12.2 userdev (deobfuscated Minecraft + Forge, compile only) =====
 configurations {
     forge
     compileOnly.extendsFrom forge
 }
 
 def forgeVersion = '1.12.2-14.23.5.2864'
-def forgeDir = file("$buildDir/forge_universal")
-def forgeJar = file("$forgeDir/forge-${forgeVersion}-universal.jar")
+def forgeDir = file("$buildDir/forge_userdev")
+def forgeJar = file("$forgeDir/forge-${forgeVersion}-userdev.jar")
 
 dependencies {
     forge files(forgeJar)
@@ -33,23 +33,31 @@ dependencies {
     compileOnly 'net.minecraft:launchwrapper:1.12'
 }
 
-task downloadForgeUniversal {
+task downloadForgeUserdev {
     doLast {
         forgeDir.mkdirs()
         if (!forgeJar.exists() || forgeJar.length() < 1000000) {
-            def url = "https://maven.minecraftforge.net/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-universal.jar"
-            println "[NovaCore] Downloading Forge universal from: $url"
+            // files.minecraftforge.net 首响应即 200 OK，不加 -L 避免重定向到 maven.minecraftforge.net
+            def url = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-userdev.jar"
+            println "[NovaCore] Downloading Forge userdev from: $url"
             exec {
-                commandLine 'curl', '-L', '-o', forgeJar.absolutePath, url
+                commandLine 'curl', '--max-redirs', '0', '-o', forgeJar.absolutePath, url
+            }
+            // 如果文件太小（HTML错误页），尝试带重定向的备选方案
+            if (forgeJar.length() < 1000000) {
+                println "[NovaCore] Direct download failed (${forgeJar.length()} bytes), trying with redirect..."
+                exec {
+                    commandLine 'curl', '-L', '-o', forgeJar.absolutePath, url
+                }
             }
             println "[NovaCore] Downloaded: ${forgeJar.length()} bytes"
         } else {
-            println "[NovaCore] Using cached Forge universal: ${forgeJar.length()} bytes"
+            println "[NovaCore] Using cached Forge userdev: ${forgeJar.length()} bytes"
         }
     }
 }
 
-compileJava.dependsOn downloadForgeUniversal
+compileJava.dependsOn downloadForgeUserdev
 
 jar {
     manifest {
