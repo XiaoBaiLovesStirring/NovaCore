@@ -110,15 +110,9 @@ if $cygwin ; then
     JAVACMD=`cygpath --unix "$JAVACMD"`
 fi
 
-# Split up the JVM_OPTS And GRADLE_OPTS values into an array
-JVM_OPTS_ARR=""
-eval "JVM_OPTS_ARR=(\"\$JVM_OPTS\")"
-GRADLE_OPTS_ARR=""
-eval "GRADLE_OPTS_ARR=(\"\$GRADLE_OPTS\")"
-
 exec "$JAVACMD" \
     $JVM_OPTS \
-    "${JVM_OPTS_ARR[@]}" \
+    $GRADLE_OPTS \
     -classpath "$CLASSPATH" \
     org.gradle.wrapper.GradleWrapperMain \
     "$@"
