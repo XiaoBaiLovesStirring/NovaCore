@@ -1,6 +1,16 @@
-plugins {
-    id 'java'
+buildscript {
+    repositories {
+        maven { url = 'https://maven.cleanroommc.com' }
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+    }
 }
+apply plugin: 'net.minecraftforge.gradle.forge'
 
 version = '1.0.0-alpha'
 group = 'com.novacore'
@@ -9,55 +19,13 @@ archivesBaseName = 'NovaCore'
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava.options.encoding = 'UTF-8'
 
-repositories {
-    mavenCentral()
-    maven { url = 'https://libraries.minecraft.net' }
+minecraft {
+    version = '1.12.2-14.23.5.2864'
+    runDir = 'run'
+    mappings = 'stable_39'
+    // 跳过运行目录设置（仅编译，不需要运行Minecraft）
+    makeObfSourceJar = false
 }
-
-// ===== Forge 1.12.2 userdev (deobfuscated Minecraft + Forge, compile only) =====
-configurations {
-    forge
-    compileOnly.extendsFrom forge
-}
-
-def forgeVersion = '1.12.2-14.23.5.2864'
-def forgeDir = file("$buildDir/forge_userdev")
-def forgeJar = file("$forgeDir/forge-${forgeVersion}-userdev.jar")
-
-dependencies {
-    forge files(forgeJar)
-    // ASM 字节码库 (coremod 核心依赖，运行时由 Forge 提供)
-    compileOnly 'org.ow2.asm:asm:5.2'
-    compileOnly 'org.ow2.asm:asm-commons:5.2'
-    // LaunchWrapper (coremod 加载框架)
-    compileOnly 'net.minecraft:launchwrapper:1.12'
-}
-
-task downloadForgeUserdev {
-    doLast {
-        forgeDir.mkdirs()
-        if (!forgeJar.exists() || forgeJar.length() < 1000000) {
-            // files.minecraftforge.net 首响应即 200 OK，不加 -L 避免重定向到 maven.minecraftforge.net
-            def url = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-userdev.jar"
-            println "[NovaCore] Downloading Forge userdev from: $url"
-            exec {
-                commandLine 'curl', '--max-redirs', '0', '-o', forgeJar.absolutePath, url
-            }
-            // 如果文件太小（HTML错误页），尝试带重定向的备选方案
-            if (forgeJar.length() < 1000000) {
-                println "[NovaCore] Direct download failed (${forgeJar.length()} bytes), trying with redirect..."
-                exec {
-                    commandLine 'curl', '-L', '-o', forgeJar.absolutePath, url
-                }
-            }
-            println "[NovaCore] Downloaded: ${forgeJar.length()} bytes"
-        } else {
-            println "[NovaCore] Using cached Forge userdev: ${forgeJar.length()} bytes"
-        }
-    }
-}
-
-compileJava.dependsOn downloadForgeUserdev
 
 jar {
     manifest {
