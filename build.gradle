@@ -13,39 +13,37 @@ repositories {
     mavenCentral()
 }
 
-// ===== Forge 1.12.2 userdev (deobfuscated Minecraft + Forge, compile only) =====
+// ===== Forge 1.12.2 universal jar (SRG=class names match MCP, compile only) =====
 configurations {
     forge
     compileOnly.extendsFrom forge
 }
 
 def userdevVersion = '1.12.2-14.23.5.2864'
-def userdevDir = file("$buildDir/forge_userdev")
-def userdevJar = file("$userdevDir/forge-${userdevVersion}-userdev.jar")
+def userdevDir = file("$buildDir/forge_universal")
+def userdevJar = file("$userdevDir/forge-${userdevVersion}-universal.jar")
 
 dependencies {
     forge files(userdevJar)
 }
 
-task downloadForgeUserdev {
+task downloadForgeUniversal {
     doLast {
         userdevDir.mkdirs()
-        if (!userdevJar.exists()) {
-            def url = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/${userdevVersion}/forge-${userdevVersion}-userdev.jar"
-            println "[NovaCore] Downloading Forge userdev from: $url"
-            // Java URL.openStream() 会跟随重定向到错误的 maven.minecraftforge.net 路径，
-            // 使用 curl 避免此问题
+        if (!userdevJar.exists() || userdevJar.length() < 1000000) {
+            def url = "https://maven.minecraftforge.net/net/minecraftforge/forge/${userdevVersion}/forge-${userdevVersion}-universal.jar"
+            println "[NovaCore] Downloading Forge universal from: $url"
             exec {
                 commandLine 'curl', '-L', '-o', userdevJar.absolutePath, url
             }
             println "[NovaCore] Downloaded: ${userdevJar.length()} bytes"
         } else {
-            println "[NovaCore] Using cached Forge userdev: ${userdevJar.length()} bytes"
+            println "[NovaCore] Using cached Forge universal: ${userdevJar.length()} bytes"
         }
     }
 }
 
-compileJava.dependsOn downloadForgeUserdev
+compileJava.dependsOn downloadForgeUniversal
 
 jar {
     manifest {

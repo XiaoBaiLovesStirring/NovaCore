@@ -23,7 +23,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            build/forge_userdev
+            build/forge_universal
           key: ${{ runner.os }}-gradle-novacore-${{ hashFiles('build.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-novacore-
