@@ -20,7 +20,7 @@ sourceCompatibility = targetCompatibility = '1.8'
 compileJava.options.encoding = 'UTF-8'
 
 minecraft {
-    version = '1.12.2-14.23.5.2864'
+    version = '1.12.2-14.23.5.2847'
     runDir = 'run'
     mappings = 'stable_39'
     // 跳过运行目录设置（仅编译，不需要运行Minecraft）
