@@ -1,0 +1,115 @@
+package com.novacore.asm;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
+/**
+ * Module 4: 实体遮挡剔除 — 基于视锥体的实体渲染剔除
+ *
+ * 转换目标（仅客户端）:
+ *   - RenderGlobal.renderEntities(Entity, ICamera, float)V
+ *     → 注入剔除设置与结束调用
+ *
+ * 安全锁: 验证renderEntities(Entity,ICamera,F)V存在后才注入
+ */
+public class EntityCullingTransformer extends NovaTransformer {
+
+    private static final String RENDER_GLOBAL = "net.minecraft.client.renderer.RenderGlobal";
+    private static final String NOVA_CULLING = "com/novacore/asm/NovaCullingHelper";
+
+    private static final String ENTITY_TYPE = "Lnet/minecraft/entity/Entity;";
+    private static final String ICAMERA_TYPE = "Lnet/minecraft/client/renderer/culling/ICamera;";
+
+    private static final String RENDER_ENTITIES_DESC = "(" + ENTITY_TYPE + ICAMERA_TYPE + "F)V";
+
+    @Override
+    protected String[] getTargetClasses() {
+        return new String[]{RENDER_GLOBAL};
+    }
+
+    @Override
+    protected String getTransformerName() {
+        return "EntityCull";
+    }
+
+    @Override
+    protected MethodSignature[] getRequiredMethods(String targetClass) {
+        if (RENDER_GLOBAL.equals(targetClass)) {
+            return new MethodSignature[]{
+                MethodSignature.of("renderEntities", RENDER_ENTITIES_DESC),
+            };
+        }
+        return null;
+    }
+
+    @Override
+    protected byte[] doTransform(String className, String transformedName, byte[] bytes) {
+        ClassReader cr = new ClassReader(bytes);
+        ClassWriter cw = createClassWriter(cr);
+
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
+
+            @Override
+            public void visitEnd() {
+                FieldVisitor fv = visitField(
+                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC,
+                    "novaCullingState",
+                    "Ljava/lang/Object;",
+                    null, null);
+                if (fv != null) {
+                    fv.visitEnd();
+                }
+                super.visitEnd();
+            }
+
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc,
+                    String signature, String[] exceptions) {
+                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+
+                if ("renderEntities".equals(name) && RENDER_ENTITIES_DESC.equals(desc)) {
+                    return new CullingInjector(mv);
+                }
+
+                return mv;
+            }
+        };
+
+        cr.accept(cv, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        return cw.toByteArray();
+    }
+
+    static class CullingInjector extends MethodVisitor {
+        private boolean beginInjected = false;
+        private boolean endInjected = false;
+
+        CullingInjector(MethodVisitor mv) {
+            super(Opcodes.ASM5, mv);
+        }
+
+        @Override
+        public void visitCode() {
+            super.visitCode();
+            if (!beginInjected) {
+                mv.visitVarInsn(Opcodes.ALOAD, 1);
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, NOVA_CULLING,
+                    "beginCulling", "(" + ICAMERA_TYPE + ")V", false);
+                beginInjected = true;
+            }
+        }
+
+        @Override
+        public void visitInsn(int opcode) {
+            if (opcode == Opcodes.RETURN && !endInjected) {
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, NOVA_CULLING,
+                    "endCulling", "()V", false);
+                endInjected = true;
+            }
+            super.visitInsn(opcode);
+        }
+    }
+}

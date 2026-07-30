@@ -1,0 +1,61 @@
+name: Build NovaCore
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Download Gradle Wrapper
+        run: |
+          mkdir -p gradle/wrapper
+          cd gradle/wrapper
+          wget -q https://raw.githubusercontent.com/gradle/gradle/v4.9.0/gradle/wrapper/gradle-wrapper.jar
+          cd ../..
+          cat > gradlew << 'GRADLEW'
+          #!/bin/sh
+          # Gradle wrapper script
+          SAVED="$(pwd)"
+          cd "$(dirname "$0")"
+          APP_HOME="$(pwd -P)"
+          cd "$SAVED"
+          CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+          exec java -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
+          GRADLEW
+          chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload NovaCore JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaCore
+          path: build/libs/*.jar
+          retention-days: 7
+
+      - name: Show build result
+        run: |
+          echo "=== Build completed ==="
+          ls -lh build/libs/

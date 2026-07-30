@@ -1,0 +1,48 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://libraries.minecraft.net' }
+        mavenCentral()
+        maven { url = 'https://repo.spongepowered.org/maven' }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = '1.0.0-alpha'
+group = 'com.novacore'
+archivesBaseName = 'NovaCore'
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava.options.encoding = 'UTF-8'
+
+minecraft {
+    version = '1.12.2-14.23.5.2864'
+    runDir = 'run'
+    mappings = 'stable_39'
+}
+
+jar {
+    manifest {
+        attributes(
+            'FMLCorePlugin': 'com.novacore.NovaCorePlugin',
+            'FMLCorePluginContainsFMLMod': 'false',
+            'ForceLoadAsMod': 'true'
+        )
+    }
+}
+
+// ForgeGradle 2.3 默认会把依赖打进jar，coremod不需要
+processResources {
+    inputs.property 'version', project.version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
