@@ -28,23 +28,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-novacore-
 
-      - name: Setup Gradle Wrapper
-        run: |
-          mkdir -p gradle/wrapper
-          cd gradle/wrapper
-          wget -q https://raw.githubusercontent.com/gradle/gradle/v4.9.0/gradle/wrapper/gradle-wrapper.jar
-          cd ../..
-          cat > gradlew << 'GRADLEW'
-          #!/bin/sh
-          SAVED="$(pwd)"
-          cd "$(dirname "$0")"
-          APP_HOME="$(pwd -P)"
-          cd "$SAVED"
-          CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
-          exec java -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
-          GRADLEW
-          chmod +x gradlew
-
       - name: Build
         run: ./gradlew build --no-daemon --stacktrace
 
