@@ -33,10 +33,10 @@ task downloadForgeUserdev {
         if (!userdevJar.exists()) {
             def url = "https://files.minecraftforge.net/maven/net/minecraftforge/forge/${userdevVersion}/forge-${userdevVersion}-userdev.jar"
             println "[NovaCore] Downloading Forge userdev from: $url"
-            new URL(url).withInputStream { input ->
-                userdevJar.withOutputStream { output ->
-                    output << input
-                }
+            // Java URL.openStream() 会跟随重定向到错误的 maven.minecraftforge.net 路径，
+            // 使用 curl 避免此问题
+            exec {
+                commandLine 'curl', '-L', '-o', userdevJar.absolutePath, url
             }
             println "[NovaCore] Downloaded: ${userdevJar.length()} bytes"
         } else {
