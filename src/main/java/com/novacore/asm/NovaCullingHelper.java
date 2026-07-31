@@ -13,7 +13,7 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.MathHelper;
 
 /**
- * 实体剔除优化 — 零反射版，通过 Access Transformer 直接访问 SRG 字段
+ * 实体剔除优化 — 使用 MCP 名编译，Forge 运行时自动重映射到 SRG 名
  */
 public class NovaCullingHelper {
 
@@ -25,13 +25,13 @@ public class NovaCullingHelper {
     public static void beginCulling(ICamera camera, Entity renderViewEntity) {
         currentCamera = camera;
         if (renderViewEntity != null) {
-            cameraX = renderViewEntity.field_70165_t;
-            cameraY = renderViewEntity.field_70163_u;
-            cameraZ = renderViewEntity.field_70161_v;
+            cameraX = renderViewEntity.posX;
+            cameraY = renderViewEntity.posY;
+            cameraZ = renderViewEntity.posZ;
         }
         try {
-            Minecraft mc = Minecraft.func_71410_x();
-            renderDistance = mc.field_71474_y.field_74325_K * 16;
+            Minecraft mc = Minecraft.getMinecraft();
+            renderDistance = mc.gameSettings.renderDistanceChunks * 16;
         } catch (Exception e) {
             renderDistance = 64;
         }
@@ -48,15 +48,15 @@ public class NovaCullingHelper {
     public static boolean isVisible(Entity entity, float partialTicks) {
         if (currentCamera == null) return true;
         if (entity == null) return false;
-        if (entity.field_70128_L) return false;
+        if (entity.isDead) return false;
 
         if (entity instanceof EntityPlayer) return true;
         if (entity instanceof EntityWeatherEffect) return true;
 
         // 阶段 1: 距离剔除
-        double ex = entity.field_70165_t;
-        double ey = entity.field_70163_u;
-        double ez = entity.field_70161_v;
+        double ex = entity.posX;
+        double ey = entity.posY;
+        double ez = entity.posZ;
         double dx = ex - cameraX;
         double dy = ey - cameraY;
         double dz = ez - cameraZ;
@@ -71,9 +71,9 @@ public class NovaCullingHelper {
         }
 
         // 阶段 2: 视锥体剔除
-        AxisAlignedBB bb = entity.func_184177_bl();
+        AxisAlignedBB bb = entity.getRenderBoundingBox();
         if (bb == null) {
-            bb = entity.func_174813_aQ();
+            bb = entity.getEntityBoundingBox();
         }
 
         if (bb != null) {

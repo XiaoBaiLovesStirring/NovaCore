@@ -12,7 +12,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 
 /**
- * 极致模式：Tick降频引擎 — 零反射版，通过 Access Transformer 直接访问 SRG 字段
+ * 极致模式：Tick降频引擎 — 使用 MCP 名编译，Forge 运行时自动重映射到 SRG 名
  */
 public class NovaTickRateHelper {
 
@@ -30,22 +30,22 @@ public class NovaTickRateHelper {
     public static boolean shouldSkipEntityTick(Entity entity) {
         if (!NovaCoreConfig.tickRateEnabled) return false;
         if (entity instanceof EntityPlayer) return false;
-        if (entity.field_70128_L) return false;
+        if (entity.isDead) return false;
 
         try {
-            World w = entity.field_70170_p;
+            World w = entity.world;
             if (w == null) return false;
 
-            double ex = entity.field_70165_t;
-            double ez = entity.field_70161_v;
+            double ex = entity.posX;
+            double ez = entity.posZ;
 
             double minDistSq = Double.MAX_VALUE;
-            List<EntityPlayer> players = w.field_73010_i;
+            List<EntityPlayer> players = w.playerEntities;
 
             if (players != null && !players.isEmpty()) {
                 for (EntityPlayer player : players) {
-                    double px = player.field_70165_t;
-                    double pz = player.field_70161_v;
+                    double px = player.posX;
+                    double pz = player.posZ;
                     double dx = ex - px;
                     double dz = ez - pz;
                     double distSq = dx * dx + dz * dz;
@@ -101,16 +101,16 @@ public class NovaTickRateHelper {
         if (!NovaCoreConfig.skipRemoteRandomTicks) return false;
 
         try {
-            int cx = chunk.field_76635_g << 4;
-            int cz = chunk.field_76647_h << 4;
+            int cx = chunk.x << 4;
+            int cz = chunk.z << 4;
             double minDistSq = Double.MAX_VALUE;
 
-            List<EntityPlayer> players = world.field_73010_i;
+            List<EntityPlayer> players = world.playerEntities;
 
             if (players != null) {
                 for (EntityPlayer player : players) {
-                    double px = player.field_70165_t;
-                    double pz = player.field_70161_v;
+                    double px = player.posX;
+                    double pz = player.posZ;
                     double dx = (cx + 8) - px;
                     double dz = (cz + 8) - pz;
                     double distSq = dx * dx + dz * dz;

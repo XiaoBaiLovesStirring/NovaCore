@@ -21,13 +21,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 异步区块IO — 零反射版，通过 Access Transformer 直接访问 SRG 字段/方法
- *
- * AT 已打通:
- *   - AnvilChunkLoader.field_75825_d (chunkSaveLocation)
- *   - AnvilChunkLoader.func_75823_a (readChunkFromNBT)
- *   - PlayerChunkMapEntry.field_187275_c (chunk)
- *   - ChunkProviderServer.field_73247_e (chunkLoader)
+ * 异步区块IO — 使用 MCP 名编译，Forge 运行时自动重映射到 SRG 名
+ * AT 负责打通 private → public 访问权限
  */
 public class NovaChunkIO {
 
@@ -77,13 +72,12 @@ public class NovaChunkIO {
         synchronized (chunkCache) {
             cached = chunkCache.get(key);
         }
-        if (cached != null && !cached.field_189550_d) {
+        if (cached != null && !cached.unloadQueued) {
             return cached;
         }
 
         try {
-            // AT 已打通: AnvilChunkLoader.field_75825_d (chunkSaveLocation)
-            File saveDir = loader.field_75825_d;
+            File saveDir = loader.chunkSaveLocation;
             RegionFile region = RegionFileCache.createOrLoadRegionFile(saveDir, x, z);
             DataInputStream dataIn = region.getChunkDataInputStream(x & 31, z & 31);
 
@@ -92,8 +86,7 @@ public class NovaChunkIO {
                     NBTTagCompound nbt = CompressedStreamTools.read(dataIn);
                     if (nbt.hasKey("Level", 10)) {
                         NBTTagCompound level = nbt.getCompoundTag("Level");
-                        // AT 已打通: AnvilChunkLoader.func_75823_a (readChunkFromNBT)
-                        Chunk chunk = loader.func_75823_a(world, level);
+                        Chunk chunk = loader.readChunkFromNBT(world, level);
                         if (chunk != null) {
                             synchronized (chunkCache) {
                                 chunkCache.put(key, chunk);
@@ -122,8 +115,7 @@ public class NovaChunkIO {
         }
 
         try {
-            // AT 已打通: AnvilChunkLoader.field_75825_d (chunkSaveLocation)
-            File saveDir = loader.field_75825_d;
+            File saveDir = loader.chunkSaveLocation;
             return RegionFileCache.createOrLoadRegionFile(saveDir, x, z).isChunkSaved(x & 31, z & 31);
         } catch (Exception e) {
             return false;
@@ -134,12 +126,11 @@ public class NovaChunkIO {
      * 玩家移动时调度周围区块预加载
      */
     public static void schedulePreload(final PlayerChunkMapEntry entry) {
-        // AT 已打通: PlayerChunkMapEntry.field_187275_c (chunk)
-        final Chunk center = entry.field_187275_c;
+        final Chunk center = entry.chunk;
         if (center == null) return;
 
-        final int cx = center.field_76635_g;
-        final int cz = center.field_76647_h;
+        final int cx = center.x;
+        final int cz = center.z;
 
         preloadExecutor.submit(() -> {
             try {
@@ -169,8 +160,7 @@ public class NovaChunkIO {
                         final int fdz = dz;
                         CompletableFuture.runAsync(() -> {
                             try {
-                                // AT 已打通: AnvilChunkLoader.field_75825_d (chunkSaveLocation)
-                                File saveDir = loader.field_75825_d;
+                                File saveDir = loader.chunkSaveLocation;
                                 RegionFile region = RegionFileCache.createOrLoadRegionFile(saveDir, cx + fdx, cz + fdz);
                                 DataInputStream dataIn = region.getChunkDataInputStream((cx + fdx) & 31, (cz + fdz) & 31);
                                 if (dataIn != null) {
@@ -178,8 +168,7 @@ public class NovaChunkIO {
                                         NBTTagCompound nbt = CompressedStreamTools.read(dataIn);
                                         if (nbt.hasKey("Level", 10)) {
                                             NBTTagCompound level = nbt.getCompoundTag("Level");
-                                            // AT 已打通: AnvilChunkLoader.func_75823_a (readChunkFromNBT)
-                                            Chunk chunk = loader.func_75823_a(center.func_177412_p(), level);
+                                            Chunk chunk = loader.readChunkFromNBT(center.getWorld(), level);
                                             if (chunk != null) {
                                                 synchronized (chunkCache) {
                                                     chunkCache.put(key, chunk);
@@ -223,17 +212,14 @@ public class NovaChunkIO {
 
     /**
      * 从 Chunk 获取 AnvilChunkLoader — 通过 AT 直接字段访问
-     * AT 已打通: ChunkProviderServer.field_73247_e (chunkLoader)
      */
     private static AnvilChunkLoader getChunkLoader(Chunk chunk) {
         try {
-            World world = chunk.func_177412_p();
+            World world = chunk.getWorld();
             if (world != null) {
-                // 通过 WorldServer.getChunkProvider() 获取 ChunkProviderServer
                 Object provider = ((net.minecraft.world.WorldServer) world).getChunkProvider();
                 if (provider instanceof ChunkProviderServer) {
-                    // AT 已打通: ChunkProviderServer.field_73247_e (chunkLoader)
-                    Object loader = ((ChunkProviderServer) provider).field_73247_e;
+                    Object loader = ((ChunkProviderServer) provider).chunkLoader;
                     if (loader instanceof AnvilChunkLoader) {
                         return (AnvilChunkLoader) loader;
                     }
