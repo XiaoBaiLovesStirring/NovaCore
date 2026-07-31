@@ -214,13 +214,21 @@ tasks.named(remapTaskName).configure {
         def jarFile = archiveFile.get().asFile
         if (jarFile.exists()) {
             exec {
-                commandLine 'sh', '-c', """
-                    cd /tmp && rm -rf _novacore_mf && mkdir _novacore_mf && cd _novacore_mf
-                    unzip -o '${jarFile.absolutePath}' META-INF/MANIFEST.MF
-                    sed -i '/Fabric-Loom-Mixin-Remap-Type/d' META-INF/MANIFEST.MF
-                    zip -d '${jarFile.absolutePath}' META-INF/MANIFEST.MF
-                    zip -u '${jarFile.absolutePath}' META-INF/MANIFEST.MF
-                """
+                commandLine 'python3', '-c', """
+import zipfile, os
+jar_path = '${jarFile.absolutePath}'
+tmp_path = jar_path + '.tmp'
+with zipfile.ZipFile(jar_path, 'r') as zin:
+    with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == 'META-INF/MANIFEST.MF':
+                lines = data.decode('utf-8').split('\\n')
+                lines = [l for l in lines if not l.startswith('Fabric-Loom-Mixin-Remap-Type')]
+                data = '\\n'.join(lines).encode('utf-8')
+            zout.writestr(item, data)
+os.rename(tmp_path, jar_path)
+"""
                 ignoreExitValue = true
             }
         }
