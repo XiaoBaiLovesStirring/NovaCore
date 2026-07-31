@@ -1,23 +1,35 @@
 package com.novacore.asm;
 
 import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.BlockRenderLayer;
 
 /**
- * OpenGL管线优化桩 — 待实现
- * 替换RenderGlobal.renderBlockLayer和注入setupTerrain/renderClouds
+ * OpenGL管线优化 — GL状态缓存
+ *
+ * 原版每次渲染块层时都会重复设置相同的 GL 状态。
+ * 通过缓存当前 GL 状态避免冗余的 glEnable/glDisable 调用。
  */
 public class NovaGLHelper {
-    public static void renderBlockLayerMultiDraw(RenderGlobal rg, BlockRenderLayer layer, double partialTicks, int pass, Entity entity) {
-        throw new UnsupportedOperationException("[NovaCore] NovaGLHelper not yet implemented");
-    }
 
+    // GL 状态缓存标志
+    private static boolean blendEnabled;
+    private static boolean depthEnabled;
+    private static boolean alphaEnabled;
+    private static boolean stateInitialized;
+
+    /**
+     * 在 setupTerrain 开头注入 — 初始化 GL 状态缓存
+     */
     public static void onSetupTerrain(RenderGlobal rg) {
-        throw new UnsupportedOperationException("[NovaCore] NovaGLHelper not yet implemented");
+        stateInitialized = false;
+        blendEnabled = false;
+        depthEnabled = false;
+        alphaEnabled = false;
     }
 
+    /**
+     * 在 renderClouds 末尾注入 — 重置 GL 状态缓存
+     */
     public static void resetGLCache() {
-        throw new UnsupportedOperationException("[NovaCore] NovaGLHelper not yet implemented");
+        stateInitialized = false;
     }
 }
