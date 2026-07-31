@@ -1,15 +1,12 @@
-[
-  {
-    "modid": "novacore",
-    "name": "NovaCore",
-    "description": "Minecraft 1.12.2 ultimate performance overhaul for Cleanroom — ASM-based BFS lighting, async chunk preloading with LRU cache, memory leak fixes, triple-tier entity culling, and OpenGL state deduplication.",
-    "version": "1.0.0-alpha",
-    "mcversion": "1.12.2",
-    "url": "",
-    "authorList": ["NovaCore Team"],
-    "credits": "Inspired by Starlight, Pulsar, Sodium, EntityCulling, FoamFix, BetterFPS. Built for Cleanroom.",
-    "logoFile": "",
-    "screenshots": [],
-    "dependencies": []
-  }
-]
+[{
+  "modid": "${mod_id}",
+  "name": "${mod_name}",
+  "version": "${mod_version}",
+  "mcversion": "1.12.2",
+  "description": "${mod_description}",
+  "authorList": ["${mod_authors}"],
+  "credits": "${mod_credits}",
+  "url": "${mod_url}",
+  "updateJSON": "${mod_update_json}",
+  "logoFile": "${mod_logo_path}"
+}]

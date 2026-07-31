@@ -23,7 +23,7 @@ abstract class MethodBodyReplacer extends GeneratorAdapter {
     private boolean replaced = false;
 
     MethodBodyReplacer(MethodVisitor mv, int access, String name, String desc) {
-        super(Opcodes.ASM5, mv, access, name, desc);
+        super(Opcodes.ASM9, mv, access, name, desc);
     }
 
     /** 子类实现此方法，使用GeneratorAdapter API写入新的方法体 */

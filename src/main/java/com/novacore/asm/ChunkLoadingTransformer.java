@@ -54,7 +54,7 @@ public class ChunkLoadingTransformer extends NovaTransformer {
     }
 
     private byte[] transformAnvilChunkLoader(ClassReader cr, ClassWriter cw) {
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                     String signature, String[] exceptions) {
@@ -105,7 +105,7 @@ public class ChunkLoadingTransformer extends NovaTransformer {
     }
 
     private byte[] transformPlayerChunkMapEntry(ClassReader cr, ClassWriter cw) {
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                     String signature, String[] exceptions) {
@@ -138,7 +138,7 @@ public class ChunkLoadingTransformer extends NovaTransformer {
         private boolean injected = false;
 
         HeadInjector(MethodVisitor mv) {
-            super(Opcodes.ASM5, mv);
+            super(Opcodes.ASM9, mv);
         }
 
         protected abstract void onMethodEntry();

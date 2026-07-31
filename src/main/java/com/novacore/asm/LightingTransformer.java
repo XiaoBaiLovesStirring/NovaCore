@@ -45,7 +45,7 @@ public class LightingTransformer extends NovaTransformer {
         ClassReader cr = new ClassReader(bytes);
         ClassWriter cw = createClassWriter(cr);
 
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                     String signature, String[] exceptions) {

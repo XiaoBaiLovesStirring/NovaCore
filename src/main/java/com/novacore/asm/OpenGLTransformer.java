@@ -42,7 +42,7 @@ public class OpenGLTransformer extends NovaTransformer {
         ClassReader cr = new ClassReader(bytes);
         ClassWriter cw = createClassWriter(cr);
 
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
 
             @Override
             public void visitEnd() {
@@ -112,7 +112,7 @@ public class OpenGLTransformer extends NovaTransformer {
         private boolean injected = false;
 
         HeadInjector(MethodVisitor mv) {
-            super(Opcodes.ASM5, mv);
+            super(Opcodes.ASM9, mv);
         }
 
         protected abstract void onMethodEntry();
@@ -131,7 +131,7 @@ public class OpenGLTransformer extends NovaTransformer {
         private boolean injected = false;
 
         ReturnInjector(MethodVisitor mv) {
-            super(Opcodes.ASM5, mv);
+            super(Opcodes.ASM9, mv);
         }
 
         protected abstract void onBeforeReturn();

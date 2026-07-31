@@ -38,7 +38,7 @@ public class EntityCullingTransformer extends NovaTransformer {
         ClassReader cr = new ClassReader(bytes);
         ClassWriter cw = createClassWriter(cr);
 
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                     String signature, String[] exceptions) {
@@ -62,7 +62,7 @@ public class EntityCullingTransformer extends NovaTransformer {
         private boolean endInjected = false;
 
         CullingInjector(MethodVisitor mv) {
-            super(Opcodes.ASM5, mv);
+            super(Opcodes.ASM9, mv);
         }
 
         @Override
@@ -70,8 +70,12 @@ public class EntityCullingTransformer extends NovaTransformer {
             super.visitCode();
             if (!beginInjected) {
                 // beginCulling(ICamera, Entity)
-                mv.visitVarInsn(Opcodes.ALOAD, 1); // ICamera (param 2)
-                mv.visitVarInsn(Opcodes.ALOAD, 0); // Entity renderViewEntity (param 1)
+                // func_180446_a(Entity, ICamera, float)V:
+                //   local 0 = this (RenderGlobal)
+                //   local 1 = Entity (renderViewEntity)
+                //   local 2 = ICamera (camera)
+                mv.visitVarInsn(Opcodes.ALOAD, 2); // ICamera (local 2)
+                mv.visitVarInsn(Opcodes.ALOAD, 1); // Entity (local 1)
                 mv.visitMethodInsn(Opcodes.INVOKESTATIC, NOVA_CULLING,
                     "beginCulling", "(" + ICAMERA_TYPE + ENTITY_TYPE + ")V", false);
                 beginInjected = true;

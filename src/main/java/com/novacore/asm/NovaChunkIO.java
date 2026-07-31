@@ -8,11 +8,10 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.AnvilChunkLoader;
 import net.minecraft.world.chunk.storage.RegionFile;
 import net.minecraft.world.chunk.storage.RegionFileCache;
+import net.minecraft.world.gen.ChunkProviderServer;
 
 import java.io.DataInputStream;
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,13 +21,13 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 异步区块IO — 真正LRU缓存 + 区域文件直接读取 + 后台预加载
+ * 异步区块IO — 零反射版，通过 Access Transformer 直接访问 SRG 字段/方法
  *
- * 读取策略：
- *   1. 先查 LRU 缓存（access-order LinkedHashMap，命中率通常 > 70%）
- *   2. 未命中则直接从 RegionFile 读取 NBT 并构造 Chunk
- *   3. 预加载线程池异步加载玩家周围区块
- *   4. 区块保存时自动失效缓存
+ * AT 已打通:
+ *   - AnvilChunkLoader.field_75825_d (chunkSaveLocation)
+ *   - AnvilChunkLoader.func_75823_a (readChunkFromNBT)
+ *   - PlayerChunkMapEntry.field_187275_c (chunk)
+ *   - ChunkProviderServer.field_73247_e (chunkLoader)
  */
 public class NovaChunkIO {
 
@@ -68,37 +67,6 @@ public class NovaChunkIO {
         }
     );
 
-    private static Field saveDirField;
-    private static Method readChunkMethod;
-    private static boolean reflectionInitDone;
-
-    private static synchronized void initReflection() {
-        if (reflectionInitDone) return;
-        try {
-            try {
-                saveDirField = AnvilChunkLoader.class.getDeclaredField("chunkSaveLocation");
-            } catch (NoSuchFieldException e) {
-                saveDirField = AnvilChunkLoader.class.getDeclaredField("field_75827_c");
-            }
-            saveDirField.setAccessible(true);
-
-            Class<?> chunkLoaderClass = AnvilChunkLoader.class.getSuperclass();
-            for (Method m : chunkLoaderClass.getDeclaredMethods()) {
-                if (m.getReturnType() == Chunk.class && m.getParameterCount() == 2) {
-                    Class<?>[] params = m.getParameterTypes();
-                    if (params[0] == World.class && params[1] == NBTTagCompound.class) {
-                        readChunkMethod = m;
-                        readChunkMethod.setAccessible(true);
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("[NovaCore] NovaChunkIO reflection init failed: " + e);
-        }
-        reflectionInitDone = true;
-    }
-
     /**
      * 替代 AnvilChunkLoader.loadChunk(World, int, int)
      */
@@ -109,14 +77,13 @@ public class NovaChunkIO {
         synchronized (chunkCache) {
             cached = chunkCache.get(key);
         }
-        if (cached != null && !cached.unloadQueued) {
+        if (cached != null && !cached.field_189550_d) {
             return cached;
         }
 
-        initReflection();
-
         try {
-            File saveDir = (File) saveDirField.get(loader);
+            // AT 已打通: AnvilChunkLoader.field_75825_d (chunkSaveLocation)
+            File saveDir = loader.field_75825_d;
             RegionFile region = RegionFileCache.createOrLoadRegionFile(saveDir, x, z);
             DataInputStream dataIn = region.getChunkDataInputStream(x & 31, z & 31);
 
@@ -125,7 +92,8 @@ public class NovaChunkIO {
                     NBTTagCompound nbt = CompressedStreamTools.read(dataIn);
                     if (nbt.hasKey("Level", 10)) {
                         NBTTagCompound level = nbt.getCompoundTag("Level");
-                        Chunk chunk = (Chunk) readChunkMethod.invoke(loader, world, level);
+                        // AT 已打通: AnvilChunkLoader.func_75823_a (readChunkFromNBT)
+                        Chunk chunk = loader.func_75823_a(world, level);
                         if (chunk != null) {
                             synchronized (chunkCache) {
                                 chunkCache.put(key, chunk);
@@ -153,10 +121,9 @@ public class NovaChunkIO {
             if (chunkCache.containsKey(key)) return true;
         }
 
-        initReflection();
-
         try {
-            File saveDir = (File) saveDirField.get(loader);
+            // AT 已打通: AnvilChunkLoader.field_75825_d (chunkSaveLocation)
+            File saveDir = loader.field_75825_d;
             return RegionFileCache.createOrLoadRegionFile(saveDir, x, z).isChunkSaved(x & 31, z & 31);
         } catch (Exception e) {
             return false;
@@ -167,15 +134,16 @@ public class NovaChunkIO {
      * 玩家移动时调度周围区块预加载
      */
     public static void schedulePreload(final PlayerChunkMapEntry entry) {
-        final Chunk center = getChunkReflect(entry);
+        // AT 已打通: PlayerChunkMapEntry.field_187275_c (chunk)
+        final Chunk center = entry.field_187275_c;
         if (center == null) return;
 
-        final int cx = center.x;
-        final int cz = center.z;
+        final int cx = center.field_76635_g;
+        final int cz = center.field_76647_h;
 
         preloadExecutor.submit(() -> {
             try {
-                AnvilChunkLoader loader = getChunkLoaderReflect(center);
+                AnvilChunkLoader loader = getChunkLoader(center);
                 if (loader == null) return;
 
                 for (int dx = -PRELOAD_RADIUS; dx <= PRELOAD_RADIUS; dx++) {
@@ -197,18 +165,21 @@ public class NovaChunkIO {
                             preloadCount.incrementAndGet();
                         }
 
+                        final int fdx = dx;
+                        final int fdz = dz;
                         CompletableFuture.runAsync(() -> {
                             try {
-                                File saveDir = (File) saveDirField.get(loader);
-                                RegionFile region = RegionFileCache.createOrLoadRegionFile(saveDir, cx + dx, cz + dz);
-                                DataInputStream dataIn = region.getChunkDataInputStream((cx + dx) & 31, (cz + dz) & 31);
+                                // AT 已打通: AnvilChunkLoader.field_75825_d (chunkSaveLocation)
+                                File saveDir = loader.field_75825_d;
+                                RegionFile region = RegionFileCache.createOrLoadRegionFile(saveDir, cx + fdx, cz + fdz);
+                                DataInputStream dataIn = region.getChunkDataInputStream((cx + fdx) & 31, (cz + fdz) & 31);
                                 if (dataIn != null) {
                                     try {
                                         NBTTagCompound nbt = CompressedStreamTools.read(dataIn);
                                         if (nbt.hasKey("Level", 10)) {
                                             NBTTagCompound level = nbt.getCompoundTag("Level");
-                                            Chunk chunk = (Chunk) readChunkMethod.invoke(
-                                                loader, center.getWorld(), level);
+                                            // AT 已打通: AnvilChunkLoader.func_75823_a (readChunkFromNBT)
+                                            Chunk chunk = loader.func_75823_a(center.func_177412_p(), level);
                                             if (chunk != null) {
                                                 synchronized (chunkCache) {
                                                     chunkCache.put(key, chunk);
@@ -250,36 +221,21 @@ public class NovaChunkIO {
         preloadCount.set(0);
     }
 
-    private static Chunk getChunkReflect(PlayerChunkMapEntry entry) {
+    /**
+     * 从 Chunk 获取 AnvilChunkLoader — 通过 AT 直接字段访问
+     * AT 已打通: ChunkProviderServer.field_73247_e (chunkLoader)
+     */
+    private static AnvilChunkLoader getChunkLoader(Chunk chunk) {
         try {
-            try {
-                Field f = PlayerChunkMapEntry.class.getDeclaredField("chunk");
-                f.setAccessible(true);
-                return (Chunk) f.get(entry);
-            } catch (NoSuchFieldException e) {
-                Field f = PlayerChunkMapEntry.class.getDeclaredField("field_187275_c");
-                f.setAccessible(true);
-                return (Chunk) f.get(entry);
-            }
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static AnvilChunkLoader getChunkLoaderReflect(Chunk chunk) {
-        try {
-            World world = chunk.getWorld();
+            World world = chunk.func_177412_p();
             if (world != null) {
-                Object provider = world.getClass().getMethod("getChunkProvider").invoke(world);
-                if (provider != null) {
-                    try {
-                        Field f = provider.getClass().getDeclaredField("chunkLoader");
-                        f.setAccessible(true);
-                        return (AnvilChunkLoader) f.get(provider);
-                    } catch (NoSuchFieldException e) {
-                        Field f = provider.getClass().getDeclaredField("field_73247_e");
-                        f.setAccessible(true);
-                        return (AnvilChunkLoader) f.get(provider);
+                // 通过 WorldServer.getChunkProvider() 获取 ChunkProviderServer
+                Object provider = ((net.minecraft.world.WorldServer) world).getChunkProvider();
+                if (provider instanceof ChunkProviderServer) {
+                    // AT 已打通: ChunkProviderServer.field_73247_e (chunkLoader)
+                    Object loader = ((ChunkProviderServer) provider).field_73247_e;
+                    if (loader instanceof AnvilChunkLoader) {
+                        return (AnvilChunkLoader) loader;
                     }
                 }
             }

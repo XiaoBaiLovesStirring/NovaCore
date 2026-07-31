@@ -1,0 +1,17 @@
+src/main/java/com/novacore/asm/NovaMathHelper.java
+src/main/java/com/novacore/asm/MemoryLeakTransformer.java
+src/main/java/com/novacore/asm/ChunkLoadingTransformer.java
+src/main/java/com/novacore/asm/LightingTransformer.java
+src/main/java/com/novacore/asm/NovaChunkIO.java
+src/main/java/com/novacore/asm/NovaTransformer.java
+src/main/java/com/novacore/asm/MethodBodyReplacer.java
+src/main/java/com/novacore/asm/NovaLightEngine.java
+src/main/java/com/novacore/asm/EntityCullingTransformer.java
+src/main/java/com/novacore/asm/NovaMemoryHelper.java
+src/main/java/com/novacore/asm/NovaCullingHelper.java
+src/main/java/com/novacore/asm/NovaGLHelper.java
+src/main/java/com/novacore/asm/OpenGLTransformer.java
+src/main/java/com/novacore/asm/MathOptTransformer.java
+src/main/java/com/novacore/NovaCoreContainer.java
+src/main/java/com/novacore/NovaCoreConfig.java
+src/main/java/com/novacore/NovaCorePlugin.java

@@ -5,25 +5,33 @@ import java.util.Map;
 
 /**
  * NovaCore — Minecraft 1.12.2 极致性能引擎
- * Forge Coremod入口，注册6个ASM字节码转换器
+ * Forge Coremod入口，注册 9 个 ASM 字节码转换器
+ *
+ * STANDARD 预设（6 个）: Lighting, ChunkLoading, MemoryLeak, EntityCulling, MathOpt, OpenGL
+ * EXTREME 预设（+3 个）: TickRate, ParticleLimiter, RenderAggression
  */
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 @IFMLLoadingPlugin.SortingIndex(1001)
 public class NovaCorePlugin implements IFMLLoadingPlugin {
 
     public NovaCorePlugin() {
-        System.out.println("[NovaCore] 极致性能引擎启动，准备替换五大核心子系统...");
+        System.out.println("[NovaCore] 极致性能引擎启动，九大核心子系统就绪...");
     }
 
     @Override
     public String[] getASMTransformerClass() {
         return new String[]{
+            // === STANDARD: 六大稳定器官 ===
             "com.novacore.asm.MathOptTransformer",
             "com.novacore.asm.MemoryLeakTransformer",
             "com.novacore.asm.LightingTransformer",
             "com.novacore.asm.ChunkLoadingTransformer",
             "com.novacore.asm.EntityCullingTransformer",
             "com.novacore.asm.OpenGLTransformer",
+            // === EXTREME: 三大激进器官 ===
+            "com.novacore.asm.TickRateTransformer",
+            "com.novacore.asm.ParticleLimiterTransformer",
+            "com.novacore.asm.RenderAggressionTransformer",
         };
     }
 

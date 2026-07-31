@@ -10,20 +10,24 @@ build/
 *.ipr
 *.iws
 .vscode/
-.project
-.classpath
-.settings/
+*.swp
+*.swo
+*~
 
 # Minecraft
 run/
 logs/
 crash-reports/
-
-# OS
-.DS_Store
-Thumbs.db
+*.log
 
 # Java
 *.class
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Maven
+target/
