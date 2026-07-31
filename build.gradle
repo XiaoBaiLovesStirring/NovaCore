@@ -209,6 +209,21 @@ tasks.named(remapTaskName).configure {
     }
     doLast {
         logging.captureStandardOutput LogLevel.QUIET
+        // 移除 unimined 自动注入的 Fabric Mixin 属性，NovaCore 是纯 Coremod + ASM
+        def jarFile = archiveFile.get().asFile
+        if (jarFile.exists()) {
+            ant.unzip(src: jarFile, dest: temporaryDir) {
+                patternset { include(name: 'META-INF/MANIFEST.MF') }
+            }
+            def manifest = new File(temporaryDir, 'META-INF/MANIFEST.MF')
+            if (manifest.exists()) {
+                def lines = manifest.readLines().findAll { !it.startsWith('Fabric-Loom-Mixin-Remap-Type') }
+                manifest.text = lines.join('\n') + '\n'
+                ant.jar(destfile: jarFile, update: true) {
+                    fileset(dir: temporaryDir) { include(name: 'META-INF/MANIFEST.MF') }
+                }
+            }
+        }
     }
 }
 compileTestJava {
