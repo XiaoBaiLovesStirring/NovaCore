@@ -146,14 +146,11 @@ public class NovaChunkIO {
      * 玩家移动时调度周围区块预加载
      * 在 PlayerChunkMapEntry.update() 开头注入
      */
-    public static void schedulePreload(PlayerChunkMapEntry entry) {
-        // 在后台线程预加载，不阻塞主线程
-        // entry.getChunk() 获取当前区块，然后预加载相邻区块
+    public static void schedulePreload(final PlayerChunkMapEntry entry) {
         preloadExecutor.submit(() -> {
             try {
-                // PlayerChunkMapEntry 有 getChunk() 方法返回 Chunk
-                // 预加载相邻的 8 个区块
-                Chunk center = entry.getChunk();
+                // 反射获取 PlayerChunkMapEntry.chunk (MCP) / field_187275_c (SRG)
+                Chunk center = getChunkReflect(entry);
                 if (center != null) {
                     int cx = center.x;
                     int cz = center.z;
@@ -170,6 +167,22 @@ public class NovaChunkIO {
             } catch (Exception ignored) {
             }
         });
+    }
+
+    private static Chunk getChunkReflect(PlayerChunkMapEntry entry) {
+        try {
+            try {
+                Field f = PlayerChunkMapEntry.class.getDeclaredField("chunk");
+                f.setAccessible(true);
+                return (Chunk) f.get(entry);
+            } catch (NoSuchFieldException e) {
+                Field f = PlayerChunkMapEntry.class.getDeclaredField("field_187275_c");
+                f.setAccessible(true);
+                return (Chunk) f.get(entry);
+            }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static long chunkKey(int x, int z) {

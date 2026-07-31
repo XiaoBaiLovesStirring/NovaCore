@@ -53,9 +53,8 @@ public class NovaCullingHelper {
 
         if (bb != null) {
             // 扩展一点包围盒避免边缘闪烁
-            double expand = entity.getRenderDistanceWeight() * 2.0;
             return currentCamera.isBoundingBoxInFrustum(
-                bb.expand(expand, expand, expand));
+                bb.expand(2.0, 2.0, 2.0));
         }
 
         return true;

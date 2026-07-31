@@ -32,7 +32,7 @@ public class NovaLightEngine {
      */
     public static boolean checkLightFor(World world, EnumSkyBlock type, BlockPos pos) {
         // 确保区块已加载（原版也做此检查）
-        if (!world.isAreaLoaded(pos, 17, 17, false)) return false;
+        if (!world.isAreaLoaded(pos, 17)) return false;
 
         Deque<BlockPos> queue = new ArrayDeque<>();
         Set<BlockPos> enqueued = new HashSet<>();
@@ -91,7 +91,7 @@ public class NovaLightEngine {
      * BFS 光照更新入口 — 方块放置/破坏时调用。
      */
     public static void updateLightBFS(World world, EnumSkyBlock type, BlockPos pos) {
-        if (!world.isAreaLoaded(pos, 17, 17, false)) return;
+        if (!world.isAreaLoaded(pos, 17)) return;
         checkLightFor(world, type, pos);
     }
 }
