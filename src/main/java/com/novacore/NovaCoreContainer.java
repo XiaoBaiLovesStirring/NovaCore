@@ -1,6 +1,7 @@
 package com.novacore;
 
 import net.minecraftforge.fml.common.DummyModContainer;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.ModMetadata;
 
 /**
@@ -8,6 +9,7 @@ import net.minecraftforge.fml.common.ModMetadata;
  * 使用 DummyModContainer(ModMetadata) 构造器直接传入metadata，
  * 避免依赖不存在的 setMetadata() 方法。
  */
+@Mod(modid = "novacore", name = "NovaCore", version = "1.0.0-alpha", acceptableRemoteVersions = "*")
 public class NovaCoreContainer extends DummyModContainer {
 
     private static ModMetadata buildMeta() {

@@ -84,8 +84,8 @@ public class OpenGLTransformer extends NovaTransformer {
                             ga.loadThis();
                             ga.loadArg(0);
                             ga.loadArg(1);
+                            ga.loadArg(2);
                             ga.loadArg(3);
-                            ga.loadArg(4);
                             ga.invokeStatic(Type.getType("L" + NOVA_GL + ";"),
                                 new Method("renderBlockLayerMultiDraw",
                                     "(Lnet/minecraft/client/renderer/RenderGlobal;" +
