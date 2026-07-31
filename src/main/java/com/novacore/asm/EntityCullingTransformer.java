@@ -3,12 +3,11 @@ package com.novacore.asm;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 /**
- * Module 4: 实体遮挡剔除 — 基于视锥体的实体渲染剔除
+ * Module 4: 实体遮挡剔除 — 视锥体+距离+类型三重剔除
  *
  * 转换目标（仅客户端）:
  *   - RenderGlobal.func_180446_a(Entity, ICamera, float)V
@@ -40,20 +39,6 @@ public class EntityCullingTransformer extends NovaTransformer {
         ClassWriter cw = createClassWriter(cr);
 
         ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
-
-            @Override
-            public void visitEnd() {
-                FieldVisitor fv = visitField(
-                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC,
-                    "novaCullingState",
-                    "Ljava/lang/Object;",
-                    null, null);
-                if (fv != null) {
-                    fv.visitEnd();
-                }
-                super.visitEnd();
-            }
-
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                     String signature, String[] exceptions) {
@@ -84,9 +69,11 @@ public class EntityCullingTransformer extends NovaTransformer {
         public void visitCode() {
             super.visitCode();
             if (!beginInjected) {
-                mv.visitVarInsn(Opcodes.ALOAD, 1);
+                // beginCulling(ICamera, Entity)
+                mv.visitVarInsn(Opcodes.ALOAD, 1); // ICamera (param 2)
+                mv.visitVarInsn(Opcodes.ALOAD, 0); // Entity renderViewEntity (param 1)
                 mv.visitMethodInsn(Opcodes.INVOKESTATIC, NOVA_CULLING,
-                    "beginCulling", "(" + ICAMERA_TYPE + ")V", false);
+                    "beginCulling", "(" + ICAMERA_TYPE + ENTITY_TYPE + ")V", false);
                 beginInjected = true;
             }
         }

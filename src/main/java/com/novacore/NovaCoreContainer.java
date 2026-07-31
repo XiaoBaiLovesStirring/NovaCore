@@ -1,15 +1,12 @@
 package com.novacore;
 
 import net.minecraftforge.fml.common.DummyModContainer;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.ModMetadata;
 
 /**
- * NovaCore 模组容器
- * 使用 DummyModContainer(ModMetadata) 构造器直接传入metadata，
- * 避免依赖不存在的 setMetadata() 方法。
+ * NovaCore 模组容器 — 通过 Coremod getModContainerClass() 注册，
+ * 不添加 @Mod 注解以避免与 coremod 重复注册。
  */
-@Mod(modid = "novacore", name = "NovaCore", version = "1.0.0-alpha", acceptableRemoteVersions = "*")
 public class NovaCoreContainer extends DummyModContainer {
 
     private static ModMetadata buildMeta() {

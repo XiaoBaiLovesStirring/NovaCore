@@ -3,7 +3,6 @@ package com.novacore.asm;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -26,6 +25,9 @@ public class ChunkLoadingTransformer extends NovaTransformer {
 
     private static final String WORLD_TYPE = "Lnet/minecraft/world/World;";
     private static final String CHUNK_TYPE = "Lnet/minecraft/world/chunk/Chunk;";
+
+    private static final String ANVIL_TYPE = "Lnet/minecraft/world/chunk/storage/AnvilChunkLoader;";
+    private static final String ENTRY_TYPE = "Lnet/minecraft/server/management/PlayerChunkMapEntry;";
 
     @Override
     protected String[] getTargetClasses() {
@@ -53,20 +55,6 @@ public class ChunkLoadingTransformer extends NovaTransformer {
 
     private byte[] transformAnvilChunkLoader(ClassReader cr, ClassWriter cw) {
         ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, cw) {
-
-            @Override
-            public void visitEnd() {
-                FieldVisitor fv = visitField(
-                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_VOLATILE,
-                    "novaAsyncExecutor",
-                    "Ljava/util/concurrent/ExecutorService;",
-                    null, null);
-                if (fv != null) {
-                    fv.visitEnd();
-                }
-                super.visitEnd();
-            }
-
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                     String signature, String[] exceptions) {
@@ -78,14 +66,14 @@ public class ChunkLoadingTransformer extends NovaTransformer {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {
+                            // loadChunkAsync(AnvilChunkLoader, World, int, int)
                             ga.loadThis();
                             ga.loadArg(0);
                             ga.loadArg(1);
                             ga.loadArg(2);
                             ga.invokeStatic(Type.getType("L" + NOVA_CHUNK_IO + ";"),
                                 new Method("loadChunkAsync",
-                                    "(Lnet/minecraft/world/chunk/storage/AnvilChunkLoader;" +
-                                    WORLD_TYPE + "II)" + CHUNK_TYPE));
+                                    "(" + ANVIL_TYPE + WORLD_TYPE + "II)" + CHUNK_TYPE));
                             ga.returnValue();
                         }
                     };
@@ -96,12 +84,13 @@ public class ChunkLoadingTransformer extends NovaTransformer {
                     return new MethodBodyReplacer(mv, access, name, desc) {
                         @Override
                         protected void emitBody(GeneratorAdapter ga) {
+                            // chunkExistsFast(AnvilChunkLoader, int, int)
                             ga.loadThis();
                             ga.loadArg(0);
                             ga.loadArg(1);
                             ga.invokeStatic(Type.getType("L" + NOVA_CHUNK_IO + ";"),
                                 new Method("chunkExistsFast",
-                                    "(Lnet/minecraft/world/chunk/storage/AnvilChunkLoader;II)Z"));
+                                    "(" + ANVIL_TYPE + "II)Z"));
                             ga.returnValue();
                         }
                     };
@@ -130,7 +119,7 @@ public class ChunkLoadingTransformer extends NovaTransformer {
                             mv.visitVarInsn(Opcodes.ALOAD, 0);
                             mv.visitMethodInsn(Opcodes.INVOKESTATIC, NOVA_CHUNK_IO,
                                 "schedulePreload",
-                                "(Lnet/minecraft/server/management/PlayerChunkMapEntry;)V", false);
+                                "(" + ENTRY_TYPE + ")V", false);
                         }
                     };
                 }
