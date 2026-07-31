@@ -213,24 +213,41 @@ tasks.named(remapTaskName).configure {
         // NovaCore 是纯 Coremod + ASM，不使用 Mixin
         def jarFile = archiveFile.get().asFile
         if (jarFile.exists()) {
-            exec {
-                commandLine 'python3', '-c', """
-import zipfile, os
-jar_path = '${jarFile.absolutePath}'
-tmp_path = jar_path + '.tmp'
-with zipfile.ZipFile(jar_path, 'r') as zin:
-    with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zout:
-        for item in zin.infolist():
-            data = zin.read(item.filename)
-            if item.filename == 'META-INF/MANIFEST.MF':
-                lines = data.decode('utf-8').split('\\n')
-                lines = [l for l in lines if not l.startswith('Fabric-Loom-Mixin-Remap-Type')]
-                data = '\\n'.join(lines).encode('utf-8')
-            zout.writestr(item, data)
-os.rename(tmp_path, jar_path)
-"""
-                ignoreExitValue = true
+            def tmpFile = new File(jarFile.absolutePath + ".tmp")
+            def zin = new java.util.zip.ZipFile(jarFile)
+            def zout = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(tmpFile))
+            try {
+                def entries = zin.entries()
+                while (entries.hasMoreElements()) {
+                    def entry = entries.nextElement()
+                    def baos = new java.io.ByteArrayOutputStream()
+                    def stream = zin.getInputStream(entry)
+                    def buf = new byte[8192]
+                    int len
+                    while ((len = stream.read(buf)) != -1) {
+                        baos.write(buf, 0, len)
+                    }
+                    stream.close()
+                    def data = baos.toByteArray()
+                    if (entry.name == 'META-INF/MANIFEST.MF') {
+                        def content = new String(data, 'UTF-8')
+                        def lines = content.split('\n').findAll { line ->
+                            !line.startsWith('Fabric-Loom-Mixin-Remap-Type')
+                        }
+                        data = lines.join('\n').getBytes('UTF-8')
+                    }
+                    def newEntry = new java.util.zip.ZipEntry(entry.name)
+                    zout.putNextEntry(newEntry)
+                    zout.write(data)
+                    zout.closeEntry()
+                }
+            } finally {
+                zout.close()
+                zin.close()
             }
+            jarFile.delete()
+            tmpFile.renameTo(jarFile)
+            println "[NovaCore] 已移除 Fabric-Loom-Mixin-Remap-Type 属性"
         }
     }
 }
