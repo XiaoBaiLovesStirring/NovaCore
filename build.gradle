@@ -73,9 +73,9 @@ processResources {
 
 // === Agent JAR 子项目 ===
 task buildAgentJar(type: Jar) {
-    archiveBaseName = 'NovaCoreAgent'
+    baseName = 'NovaCoreAgent'
     version = '1.0.0'
-    destinationDirectory = file("$buildDir/libs")
+    destinationDir = file("$buildDir/libs")
     manifest {
         attributes(
             'Premain-Class': 'com.novacore.agent.NovaAgent',
