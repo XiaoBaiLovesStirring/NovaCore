@@ -4,6 +4,7 @@ buildscript {
         maven { url = 'https://libraries.minecraft.net' }
         mavenCentral()
         maven { url = 'https://repo.spongepowered.org/maven' }
+        maven { url = 'https://files.minecraftforge.net/maven' }
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
@@ -12,30 +13,53 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = '1.0.0-alpha'
+version = '2.0.0-mixin'
 group = 'com.novacore'
 archivesBaseName = 'NovaCore'
 
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava.options.encoding = 'UTF-8'
 
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.spongepowered.org/maven' }
+    maven { url = 'https://files.minecraftforge.net/maven' }
+}
+
+configurations {
+    embed
+    compile.extendsFrom(embed)
+}
+
+dependencies {
+    embed('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
+        transitive = false
+    }
+}
+
 minecraft {
     version = '1.12.2-14.23.5.2864'
     runDir = 'run'
     mappings = 'stable_39'
+    // Make mixin work in dev
+    clientJvmArgs += ['-Dfml.coreMods.load=com.novacore.NovaCorePlugin']
 }
 
 jar {
     manifest {
         attributes(
             'FMLCorePlugin': 'com.novacore.NovaCorePlugin',
-            'FMLCorePluginContainsFMLMod': 'false',
-            'ForceLoadAsMod': 'true'
+            'FMLCorePluginContainsFMLMod': 'true',
+            'ForceLoadAsMod': 'true',
+            'MixinConfigs': 'mixins.novacore.json',
+            'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
+            'TweakOrder': '0'
         )
     }
+    // Embed Mixin
+    from configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
 }
 
-// ForgeGradle 2.3 默认会把依赖打进jar，coremod不需要
 processResources {
     inputs.property 'version', project.version
     from(sourceSets.main.resources.srcDirs) {
@@ -45,4 +69,23 @@ processResources {
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
+}
+
+// === Agent JAR 子项目 ===
+task buildAgentJar(type: Jar) {
+    archiveBaseName = 'NovaCoreAgent'
+    version = '1.0.0'
+    destinationDirectory = file("$buildDir/libs")
+    manifest {
+        attributes(
+            'Premain-Class': 'com.novacore.agent.NovaAgent',
+            'Can-Redefine-Classes': 'true',
+            'Can-Retransform-Classes': 'true',
+            'Agent-Class': 'com.novacore.agent.NovaAgent'
+        )
+    }
+    from(sourceSets.main.output) {
+        include 'com/novacore/agent/**'
+    }
+    classifier = 'agent'
 }

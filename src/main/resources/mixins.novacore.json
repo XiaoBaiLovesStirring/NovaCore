@@ -1,0 +1,30 @@
+{
+    "required": true,
+    "minVersion": "0.7.11",
+    "package": "com.novacore.mixin",
+    "compatibilityLevel": "JAVA_8",
+    "refmap": "mixins.novacore.refmap.json",
+    "plugin": "com.novacore.mixin.NovaMixinPlugin",
+    "mixins": [
+        "MixinMathHelper",
+        "MixinWorld_Lighting",
+        "MixinWorldServer",
+        "MixinChunk",
+        "MixinAnvilChunkLoader",
+        "MixinPlayerChunkMapEntry",
+        "MixinRenderGlobal_EntityCulling",
+        "MixinRenderGlobal_OpenGL",
+        "MixinRender_Shadows",
+        "MixinFakePlayer",
+        "MixinParticleManager",
+        "MixinWorld_TickRate",
+        "MixinEntity_TickRate",
+        "MixinTileEntity_TickRate"
+    ],
+    "client": [
+        "MixinRenderGlobal_EntityCulling",
+        "MixinRenderGlobal_OpenGL",
+        "MixinRender_Shadows",
+        "MixinParticleManager"
+    ]
+}

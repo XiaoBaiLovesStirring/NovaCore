@@ -4,9 +4,8 @@ import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.ModMetadata;
 
 /**
- * NovaCore 模组容器
- * 使用 DummyModContainer(ModMetadata) 构造器直接传入metadata，
- * 避免依赖不存在的 setMetadata() 方法。
+ * NovaCore 模组容器 — 2.0 Mixin 版
+ * 注册 @Mod 以供 GUI Factory 和配置系统使用
  */
 public class NovaCoreContainer extends DummyModContainer {
 
@@ -14,9 +13,12 @@ public class NovaCoreContainer extends DummyModContainer {
         ModMetadata meta = new ModMetadata();
         meta.modId = "novacore";
         meta.name = "NovaCore";
-        meta.version = "1.0.0-alpha";
-        meta.description = "Minecraft 1.12.2 extreme performance overhaul — ASM-based BFS lighting, async chunk loading, memory leak fixes, entity culling, and OpenGL pipeline rewrite.";
+        meta.version = "2.0.0-mixin";
+        meta.description = "Minecraft 1.12.2 extreme performance overhaul — Mixin-powered BFS lighting, async chunk loading, memory leak fixes, triple-tier entity culling, GL state dedup, math lookup tables, and optional EXTREME tick/particle/render tuning.";
         meta.authorList = java.util.Collections.singletonList("NovaCore Team");
+        meta.credits = "Inspired by Starlight, Pulsar, Sodium, EntityCulling, FoamFix, BetterFPS";
+        meta.url = "https://github.com/XiaoBaiLovesStirring/NovaCore";
+        meta.guiConfigFactoryClass = "com.novacore.gui.NovaCoreGuiFactory";
         return meta;
     }
 
