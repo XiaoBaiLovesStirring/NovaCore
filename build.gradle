@@ -38,7 +38,7 @@ dependencies {
 }
 
 minecraft {
-    version = '1.12.2-14.23.5.2864'
+    version = '1.12.2-14.23.5.2847'
     runDir = 'run'
     mappings = 'stable_39'
     // Make mixin work in dev
