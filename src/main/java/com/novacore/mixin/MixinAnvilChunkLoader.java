@@ -9,28 +9,20 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Unique;
 
 /**
- * MixinAnvilChunkLoader — 将 AnvilChunkLoader 的同步区块加载替换为异步 IO
- * <p>
- * 目标类: net.minecraft.world.chunk.storage.AnvilChunkLoader
- * 替换方法: loadChunk (func_75815_a) / isChunkGeneratedAt (func_191063_a)
- * 委托: NovaChunkIO.loadChunkAsync() / NovaChunkIO.chunkExistsFast()
- * </p>
+ * MixinAnvilChunkLoader — 异步区块加载
+ * 替换: func_75815_a (loadChunk) / func_191063_a (isChunkGeneratedAt)
  */
 @Mixin(AnvilChunkLoader.class)
 public class MixinAnvilChunkLoader {
 
-    /**
-     * 首次调用计数器，用于保证日志只打印一次
-     */
     @Unique
     private static int loadCount = 0;
 
     /**
-     * 替换 AnvilChunkLoader.loadChunk (func_75815_a)
-     * 委托给 NovaChunkIO.loadChunkAsync() 进行异步区块加载
+     * 替换 AnvilChunkLoader.func_75815_a (loadChunk)
      */
-    @Overwrite
-    public Chunk loadChunk(World world, int x, int z) {
+    @Overwrite(remap = false)
+    public Chunk func_75815_a(World world, int x, int z) {
         if (loadCount == 0) {
             loadCount++;
             System.out.println("[NovaCore] 异步区块加载已启用");
@@ -39,11 +31,10 @@ public class MixinAnvilChunkLoader {
     }
 
     /**
-     * 替换 AnvilChunkLoader.isChunkGeneratedAt (func_191063_a)
-     * 委托给 NovaChunkIO.chunkExistsFast() 进行快速区块存在性检查
+     * 替换 AnvilChunkLoader.func_191063_a (isChunkGeneratedAt)
      */
-    @Overwrite
-    public boolean isChunkGeneratedAt(World world, int x, int z) {
+    @Overwrite(remap = false)
+    public boolean func_191063_a(World world, int x, int z) {
         if (loadCount == 0) {
             loadCount++;
             System.out.println("[NovaCore] 异步区块加载已启用");

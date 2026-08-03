@@ -10,28 +10,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * MixinWorld_TickRate — EXTREME 模块：Tick 降频引擎
- * <p>
- * 目标类: net.minecraft.world.WorldServer
- * 注入方法: func_72839_b (updateEntities) — HEAD 注入降频逻辑
- * 委托: NovaTickRateHelper.onWorldTick(this)
- * </p>
+ * 目标: WorldServer.func_72839_b (updateEntities)
  */
 @Mixin(WorldServer.class)
 public class MixinWorld_TickRate {
 
-    /**
-     * 注入标志，确保日志只打印一次
-     */
     @Unique
     private static boolean injected = false;
 
     /**
-     * 注入到 WorldServer.func_72839_b (updateEntities) 方法 HEAD
-     * <p>
-     * 调用 NovaTickRateHelper.onWorldTick(this) 控制世界 Tick 频率
-     * </p>
+     * 注入到 WorldServer.func_72839_b (updateEntities) HEAD
      */
-    @Inject(method = "func_72839_b", at = @At("HEAD"))
+    @Inject(method = "func_72839_b", at = @At("HEAD"), remap = false)
     private void onUpdateEntities(CallbackInfo ci) {
         if (!injected) {
             injected = true;

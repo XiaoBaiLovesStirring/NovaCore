@@ -11,31 +11,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * MixinParticleManager — EXTREME 模块：粒子限制器
- * <p>
- * 目标类: net.minecraft.client.particle.ParticleManager
- * 注入方法:
- *   func_78873_a (addEffect/spawnParticle) — HEAD 注入，按需丢弃粒子
- *   func_78874_a (updateEffects) — HEAD 注入，更新限制器状态
- * 委托: NovaParticleLimiter
- * </p>
+ * 目标: ParticleManager.func_78873_a (addEffect) / func_78874_a (updateEffects)
  */
 @Mixin(ParticleManager.class)
 public class MixinParticleManager {
 
-    /**
-     * 注入标志，确保日志只打印一次
-     */
     @Unique
     private static boolean injected = false;
 
     /**
-     * 注入到 ParticleManager.func_78873_a (addEffect/spawnParticle) 方法 HEAD
-     * <p>
-     * 调用 NovaParticleLimiter.shouldDiscardParticle(this, particle) 判断是否丢弃该粒子
-     * 如果返回 true，则通过 CallbackInfo.cancel() 取消粒子的生成
-     * </p>
+     * 注入到 ParticleManager.func_78873_a (addEffect/spawnParticle) HEAD
      */
-    @Inject(method = "func_78873_a", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "func_78873_a", at = @At("HEAD"), cancellable = true, remap = false)
     private void onAddEffect(Particle particle, CallbackInfo ci) {
         if (!injected) {
             injected = true;
@@ -48,12 +35,9 @@ public class MixinParticleManager {
     }
 
     /**
-     * 注入到 ParticleManager.func_78874_a (updateEffects) 方法 HEAD
-     * <p>
-     * 调用 NovaParticleLimiter.onUpdateEffects(this) 更新限制器内部状态
-     * </p>
+     * 注入到 ParticleManager.func_78874_a (updateEffects) HEAD
      */
-    @Inject(method = "func_78874_a", at = @At("HEAD"))
+    @Inject(method = "func_78874_a", at = @At("HEAD"), remap = false)
     private void onUpdateEffects(CallbackInfo ci) {
         NovaParticleLimiter.onUpdateEffects((ParticleManager) (Object) this);
     }
