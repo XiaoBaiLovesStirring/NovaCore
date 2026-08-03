@@ -35,11 +35,6 @@ public class NovaParticleLimiter {
             return true;
         }
 
-        // 减少粒子生命周期
-        if (NovaCoreConfig.reduceParticleLifetime && particle != null) {
-            particle.particleMaxAge = Math.max(1, particle.particleMaxAge / 2);
-        }
-
         return false;
     }
 

@@ -18,11 +18,15 @@ public class NovaCoreContainer extends DummyModContainer {
         meta.authorList = java.util.Collections.singletonList("NovaCore Team");
         meta.credits = "Inspired by Starlight, Pulsar, Sodium, EntityCulling, FoamFix, BetterFPS";
         meta.url = "https://github.com/XiaoBaiLovesStirring/NovaCore";
-        meta.guiConfigFactoryClass = "com.novacore.gui.NovaCoreGuiFactory";
         return meta;
     }
 
     public NovaCoreContainer() {
         super(buildMeta());
+    }
+
+    @Override
+    public String getGuiClassName() {
+        return "com.novacore.gui.NovaCoreGuiFactory";
     }
 }
